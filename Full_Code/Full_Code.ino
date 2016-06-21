@@ -66,7 +66,8 @@ void debug()
 void setup()
 {
   Serial.begin(115200);
-  Serial.write("Begin serial with 115200\n");
+  Serial.write("\n");
+  
   pinMode(ldac,OUTPUT);   
   digitalWrite(ldac,LOW); //Load DAC pin for DAC. Make it LOW if not in use. 
   pinMode(clr, OUTPUT);
@@ -562,7 +563,7 @@ void loop()
           else
           {
             inByte += received;
-          }        
+        }        
       }
     }
   router(comm);
