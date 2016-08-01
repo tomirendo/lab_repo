@@ -17,8 +17,8 @@ int drdy=48; // Data is ready pin on ADC
 int led = 32;
 int data=28;//Used for trouble shooting; connect an LED between pin 13 and GND
 int err=30;
-const int Noperations = 12;
-String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "SINE_RAMP"};
+const int Noperations = 13;
+String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "BUFFER_SINE"};
 
 namespace std {
   void __throw_bad_alloc()
@@ -584,13 +584,16 @@ void router(std::vector<String> DB)
     break;
 
     case 10:
-          sine_buffer(2, 2, 3, 4, 40, 100,3);
     RDY();
     break;
           
       case 11: // Sine Wave
           sine(DB[1].toInt(), DB[2].toFloat(), DB[3].toFloat(), DB[4].toFloat(), DB[5].toFloat());
       break;
+      case 12:
+          sine_buffer(DB[1].toInt(), DB[2].toInt(), DB[3].toFloat(),
+                      DB[4].toFloat(), DB[5].toFloat(), DB[6].toFloat() ,DB[7].toFloat());
+          break;
 
     default:
     break;
