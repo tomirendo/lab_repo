@@ -3,6 +3,11 @@
 //Modified by Carlos Kometter 7/7/2015
 #include "SPI.h" // necessary library for SPI communication
 #include <vector>
+#include "math.h"
+#define SECONDS_IN_MILISECOND 0.001
+#define MILISECONDS_IN_SECOND 1000
+#define MICROSECONDS_IN_SECOND 1000000
+
 int adc=52; //The SPI pin for the ADC
 int dac=4;  //The SPI pin for the DAC
 int ldac=6; //Load DAC pin for DAC. Make it LOW if not in use. 
@@ -12,8 +17,8 @@ int drdy=48; // Data is ready pin on ADC
 int led = 32;
 int data=28;//Used for trouble shooting; connect an LED between pin 13 and GND
 int err=30;
-const int Noperations = 11;
-String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?"};
+const int Noperations = 12;
+String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "SINE_RAMP"};
 
 namespace std {
   void __throw_bad_alloc()
@@ -419,7 +424,52 @@ void autoRamp1(std::vector<String> DB)
     while(micros() <= timer + DB[5].toInt());
   }
 }
-
+void sine(int dac_channel, float mid, float amp, float frequency, int steps){
+    //Yotam
+    /*
+        Running Sine funciton on dac_channel in an infinit loop
+        To run a new command, reset the arduino using the Serial protocol
+        (python pyserial.Serial.reset_output_buffer)
+     */
+    int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
+    double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
+    Serial.print("Running real freq : ");
+    Serial.println(real_freq);
+    double single_step_rad = 2*3.1415926 / steps;
+    double current_radian = 0;
+    int timer;
+    double value_to_write;
+  while (1){
+      timer = micros();
+      value_to_write =  sin(current_radian)*amp + mid;
+      writeDAC(dac_channel, value_to_write);
+      current_radian += single_step_rad;
+      while(micros() <= timer + waiting_time);
+  }
+}
+void sine_buffer(int dac_channel, int adc_channel, float mid, float amp, float frequency,
+                 int steps, int iterations){
+    //Yotam
+    /*
+     Just like Sine, but running n times and reading along.
+     
+     */
+    int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
+    double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
+    double single_step_rad = 2*3.1415926 / steps;
+    double current_radian = 0;
+    int timer;
+    double value_to_write;
+    for (int i = 0; i < iterations* steps; i++){
+      timer = micros();
+      value_to_write =  sin(current_radian)*amp + mid;
+      writeDAC(dac_channel, value_to_write);
+        current_radian += single_step_rad;
+        readADC(adc_channel);
+      while(micros() <= timer + waiting_time);
+  }
+    Serial.println("BUFFER_SINE_FINISHED");
+}
 void autoRamp2(std::vector<String> DB)
 {
   float vi1 = DB[3].toFloat();
@@ -470,6 +520,8 @@ void autoRamp2(std::vector<String> DB)
 
 void router(std::vector<String> DB)
 {
+  //Input : String of arguments
+  //Output : 
   int operation = indexOfOperation(DB[0]);
   switch ( operation )
   {
@@ -532,8 +584,13 @@ void router(std::vector<String> DB)
     break;
 
     case 10:
+          sine_buffer(2, 2, 3, 4, 40, 100,3);
     RDY();
     break;
+          
+      case 11: // Sine Wave
+          sine(DB[1].toInt(), DB[2].toFloat(), DB[3].toFloat(), DB[4].toFloat(), DB[5].toFloat());
+      break;
 
     default:
     break;
