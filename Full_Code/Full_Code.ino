@@ -20,9 +20,9 @@ int drdy=48; // Data is ready pin on ADC
 int led = 32;
 int data=28;//Used for trouble shooting; connect an LED between pin 13 and GND
 int err=30;
-const int Noperations = 13;
+const int Noperations = 14;
 //hwm::WaveTable table(1024);
-String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "BUFFER_SINE"};
+String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "BUFFER_SINE", "SINE_READ"};
 
 namespace std {
   void __throw_bad_alloc()
@@ -555,6 +555,8 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
     
     //Peak-to-Peak data
     float max_value, min_value, last_read;
+    max_value = -1000;
+    min_value = 1000;
     
     
   while (1){
@@ -567,22 +569,29 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
           while (byte != '\r'){
               update += byte;
               byte = Serial.read();
-              if (byte == ' '){
+              if (byte == ' ' || byte == '\r'){
                   command = update;
                   update = "";
-                  byte = Serial.read();
+                  if (byte == ' '){
+                      byte = Serial.read();
+                  }
               }
           }
           if (command == "DC"){
               mid = update.toFloat();
               max_value = -1000;
+              min_value = 1000;
           } else if (command == "AC"){
+              
               amp = update.toFloat();
               min_value = 1000;
+              max_value = -1000;
           } else if (command == "PK"){
               Serial.println(max_value - min_value);
           }
       }
+      
+      //Applying sine Current
       timer = micros();
       value_to_write =  sin(current_radian)*amp + mid;
       writeDAC(dac_channel, value_to_write);
@@ -773,6 +782,9 @@ void router(std::vector<String> DB)
       case 12:
           sine_buffer(DB[1].toInt(), DB[2].toInt(), DB[3].toFloat(),
                       DB[4].toFloat(), DB[5].toFloat(), DB[6].toFloat() ,DB[7].toFloat());
+          break;
+      case 13:
+          sine_with_read(DB[1].toInt(), DB[2].toInt(), DB[3].toFloat(), DB[4].toFloat(), DB[5].toFloat(), DB[6].toFloat());
           break;
 
     default:
