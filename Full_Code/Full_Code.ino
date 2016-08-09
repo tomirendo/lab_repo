@@ -507,26 +507,36 @@ void sine(int dac_channel, float mid, float amp, float frequency, int steps){
     
   while (1){
       
-      if (Serial.available() > 0){
-          //Sine function supports updates during operations
+      if (Serial.available()){
           update = "";
           command = "";
-          byte = Serial.read();
-          while (byte != '\r'){
-              update += byte;
+          do {
               byte = Serial.read();
-              if (byte == ' '){
+              
+              if (byte == '\xff'){
+                  ; //Ignore
+              } else if (byte == ' ') {
                   command = update;
                   update = "";
-                  byte = Serial.read();
+              } else {
+                  update.concat(byte);
               }
+              
+          } while (byte != '\r');
+          
+          while (Serial.available()){
+              Serial.read();
           }
-          if (command == "DC"){
+          
+          command.trim();
+          update.trim();
+          if (command == "DC") {
               mid = update.toFloat();
           } else if (command == "AC"){
               amp = update.toFloat();
           }
       }
+      
       timer = micros();
       value_to_write =  sin(current_radian)*amp + mid;
       writeDAC(dac_channel, value_to_write);
@@ -536,13 +546,12 @@ void sine(int dac_channel, float mid, float amp, float frequency, int steps){
 }
 void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, float frequency, int steps){
     //Yotam
-    /*
-     Just like Sine, but running n times and reading along.
+    //
+    // Just like Sine, but running n times and reading along.
 
-     */
     int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
     double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
-    Serial.print("Running real freq : ");
+    Serial.print("Sine with read is running real freq : ");
     Serial.println(real_freq);
     double single_step_rad = 2*3.1415926 / steps;
     double current_radian = 0;
@@ -560,36 +569,46 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
     
     
   while (1){
-      
-      if (Serial.available() > 0){
-          //Sine function supports updates during operations
+       if (Serial.available()){
           update = "";
           command = "";
-          byte = Serial.read();
-          while (byte != '\r'){
-              update += byte;
+          do {
               byte = Serial.read();
-              if (byte == ' ' || byte == '\r'){
+              
+              if (byte == '\xff'){
+                  ; //Ignore
+              } else if (byte == ' ') {
                   command = update;
                   update = "";
-                  if (byte == ' '){
-                      byte = Serial.read();
-                  }
+              } else {
+                  update.concat(byte);
               }
-          }
-          if (command == "DC"){
-              mid = update.toFloat();
-              max_value = -1000;
-              min_value = 1000;
-          } else if (command == "AC"){
               
-              amp = update.toFloat();
-              min_value = 1000;
-              max_value = -1000;
-          } else if (command == "PK"){
-              Serial.println(max_value - min_value);
+          } while (byte != '\r');
+          
+          while (Serial.available()){
+              Serial.read();
           }
+          
+          command.trim();
+          update.trim();
+          if (command == "DC") {
+              mid = update.toFloat();
+              //Init max\min values
+              max_value = -100;
+              min_value = 100;
+          } else if (command == "AC"){
+              amp = update.toFloat();
+              //Init max\min values
+              max_value = -100;
+              min_value = 100;
+          } else if (command == "PK"){
+              Serial.println(max_value -  min_value, 4);
+          }
+        
       }
+      
+      
       
       //Applying sine Current
       timer = micros();
