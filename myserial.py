@@ -30,13 +30,29 @@ def buffer_sine(serial_device, dac_channel, adc_channel, mid_voltage,
     if isinstance(str, adc_channels):
         adc_channels = "".join(adc_channels.split(","))
     """
+    from collections import namedtuple
+    from numpy import arange
+    from pandas import DataFrame
+    result = namedtuple("SineBufferReading","data, reference, orthogonal_reference")
     command = "BUFFER_SINE,{},{},{},{},{},{},{}\r".format(dac_channel, adc_channel, mid_voltage,
                 amplitude, frequency, steps, iterations)
     serial_device.write(command.encode())
-    reads= [serial_device.readline()]
-    while reads[-1] != "BUFFER_SINE_FINISHED":
-        reads.append(serial_device.readline().decode().replace("\r\n",""))
-    return [float(i) for i in reads[:-1]]
+    while not serial_device.readline().startswith(b"BEGIN_PRINT_DATA"):
+        pass
+    data = [serial_device.readline()]
+    while data[-1] != "BEGIN_PRINT_REF":
+        data.append(serial_device.readline().decode().replace("\r\n",""))
+    ref = [serial_device.readline()]
+    while ref [-1] != "BEGIN_ORTHOGONAL_REF_DATA":
+        ref.append(serial_device.readline().decode().replace("\r\n",""))
+    orth_ref = [serial_device.readline()]
+    while orth_ref[-1] != "BUFFER_SINE_FINISHED":
+        orth_ref.append(serial_device.readline().decode().replace("\r\n",""))
+    ref, data, orth_ref = ref[:-1], data[:-1], orth_ref[:-1]
+    result_as_list = [result(*list(map(float,i))) for i in zip(data,ref,orth_ref)]
+    waiting_time = 1/(steps * frequency)
+    df = DataFrame(result_as_list, index = arange(0, len(data)) * waiting_time)
+    return df
 
 def buffer_ramp(serial_device, dac_channel, adc_channel,
                 begin_voltage, end_voltage, number_of_steps, 

@@ -4,9 +4,12 @@
 #include "SPI.h" // necessary library for SPI communication
 #include <vector>
 #include "math.h"
+//#include "WaveTable.hpp"
+
 #define SECONDS_IN_MILISECOND 0.001
 #define MILISECONDS_IN_SECOND 1000
 #define MICROSECONDS_IN_SECOND 1000000
+#define PRE_ITERATIONS 3
 
 int adc=52; //The SPI pin for the ADC
 int dac=4;  //The SPI pin for the DAC
@@ -18,6 +21,7 @@ int led = 32;
 int data=28;//Used for trouble shooting; connect an LED between pin 13 and GND
 int err=30;
 const int Noperations = 13;
+//hwm::WaveTable table(1024);
 String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "BUFFER_SINE"};
 
 namespace std {
@@ -227,6 +231,40 @@ void getSingleReading(int adcchan)
     }
   }
 }
+float getSingleReadingWithoutPrint(int adcchan){
+    //Yotam
+   Serial.flush();
+  int statusbyte=0;
+  byte o2;
+  byte o3;
+  int ovr;
+  if(adcchan <= 3)
+  {
+    SPI.transfer(adc,0x38+adcchan);   // Indicates comm register to access mode register with channel
+    SPI.transfer(adc,0x48);           // Indicates mode register to start single convertion in dump mode
+    waitDRDY();                       // Waits until convertion finishes
+    SPI.transfer(adc,0x48+adcchan);   // Indcates comm register to read data channel data register
+    statusbyte=SPI.transfer(adc,0);   // Reads Channel 'ch' status
+    o2=SPI.transfer(adc,0);           // Reads first byte
+    o3=SPI.transfer(adc,0);           // Reads second byte
+    ovr=statusbyte&1;
+    switch (ovr)
+    {
+      case 0:
+      int decimal;
+      decimal = twoByteToInt(o2,o3);
+      float voltage;
+      voltage = map2(decimal, 0, 65536, -10.0, 10.0);
+            return voltage;
+      //Serial.println(voltage,4);
+      break;
+      
+      case 1:
+            return 0;
+      break;
+    }
+  } 
+}
 
 void readADC(byte DB)
 {
@@ -252,6 +290,28 @@ void readADC(byte DB)
 }
 
 
+float readADCWithoutPrint(byte DB)
+{
+  int adcChannel=DB;
+  switch (adcChannel)
+  {
+    case 0:
+    return getSingleReadingWithoutPrint(1);
+    break;
+    case 1:
+    return getSingleReadingWithoutPrint(3);
+    break;
+    case 2:
+    return getSingleReadingWithoutPrint(0);
+    break;
+    case 3:
+    return getSingleReadingWithoutPrint(2);
+    break;
+
+    default:  
+    break;
+  }
+}
 
 
 
@@ -438,8 +498,35 @@ void sine(int dac_channel, float mid, float amp, float frequency, int steps){
     double single_step_rad = 2*3.1415926 / steps;
     double current_radian = 0;
     int timer;
-    double value_to_write;
+    double value_to_write, value_to_reference;
+    
+    //Online updates
+    String update, command;
+    char byte;
+    
+    
   while (1){
+      
+      if (Serial.available() > 0){
+          //Sine function supports updates during operations
+          update = "";
+          command = "";
+          byte = Serial.read();
+          while (byte != '\r'){
+              update += byte;
+              byte = Serial.read();
+              if (byte == ' '){
+                  command = update;
+                  update = "";
+                  byte = Serial.read();
+              }
+          }
+          if (command == "DC"){
+              mid = update.toFloat();
+          } else if (command == "AC"){
+              amp = update.toFloat();
+          }
+      }
       timer = micros();
       value_to_write =  sin(current_radian)*amp + mid;
       writeDAC(dac_channel, value_to_write);
@@ -447,11 +534,77 @@ void sine(int dac_channel, float mid, float amp, float frequency, int steps){
       while(micros() <= timer + waiting_time);
   }
 }
+void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, float frequency, int steps){
+    //Yotam
+    /*
+     Just like Sine, but running n times and reading along.
+
+     */
+    int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
+    double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
+    Serial.print("Running real freq : ");
+    Serial.println(real_freq);
+    double single_step_rad = 2*3.1415926 / steps;
+    double current_radian = 0;
+    int timer;
+    double value_to_write, value_to_reference;
+    
+    //Online updates
+    String update, command;
+    char byte;
+    
+    //Peak-to-Peak data
+    float max_value, min_value, last_read;
+    
+    
+  while (1){
+      
+      if (Serial.available() > 0){
+          //Sine function supports updates during operations
+          update = "";
+          command = "";
+          byte = Serial.read();
+          while (byte != '\r'){
+              update += byte;
+              byte = Serial.read();
+              if (byte == ' '){
+                  command = update;
+                  update = "";
+                  byte = Serial.read();
+              }
+          }
+          if (command == "DC"){
+              mid = update.toFloat();
+              max_value = -1000;
+          } else if (command == "AC"){
+              amp = update.toFloat();
+              min_value = 1000;
+          } else if (command == "PK"){
+              Serial.println(max_value - min_value);
+          }
+      }
+      timer = micros();
+      value_to_write =  sin(current_radian)*amp + mid;
+      writeDAC(dac_channel, value_to_write);
+      current_radian += single_step_rad;
+      last_read=readADCWithoutPrint(adc_channel);
+      if (last_read > max_value){
+          max_value = last_read;
+      }
+      if (last_read < min_value){
+          min_value = last_read;
+      }
+      while(micros() <= timer + waiting_time);
+  }
+}
+
+
 void sine_buffer(int dac_channel, int adc_channel, float mid, float amp, float frequency,
                  int steps, int iterations){
     //Yotam
     /*
      Just like Sine, but running n times and reading along.
+
      
      */
     int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
@@ -460,14 +613,41 @@ void sine_buffer(int dac_channel, int adc_channel, float mid, float amp, float f
     double current_radian = 0;
     int timer;
     double value_to_write;
+    float data[steps*iterations];
+    float reference_data[steps*iterations];
+    float orthogonal_reference_data[steps*iterations];
+    //Run DEFAULT times without recording
+     for (int i = 0; i < PRE_ITERATIONS * steps; i++){
+      timer = micros();
+      value_to_write =  sin(current_radian)*amp + mid;
+      writeDAC(dac_channel, value_to_write);
+      current_radian += single_step_rad;
+      while(micros() <= timer + waiting_time);
+  }
+    current_radian = 0;
     for (int i = 0; i < iterations* steps; i++){
       timer = micros();
       value_to_write =  sin(current_radian)*amp + mid;
       writeDAC(dac_channel, value_to_write);
         current_radian += single_step_rad;
-        readADC(adc_channel);
+        reference_data[i] = value_to_write;
+        orthogonal_reference_data[i] = sin(current_radian + PI/2)*amp + mid;
+        data[i]=readADCWithoutPrint(adc_channel);
       while(micros() <= timer + waiting_time);
   }
+    Serial.println("BEGIN_PRINT_DATA");
+    for(int i = 0; i< steps*iterations; ++i){
+        Serial.println(data[i],4);
+    }
+    Serial.println("BEGIN_PRINT_REF");
+    for(int i = 0; i< steps*iterations; ++i){
+        Serial.println(reference_data[i],4);
+    }
+    Serial.println("BEGIN_ORTHOGONAL_REF_DATA");
+    for(int i = 0; i< steps*iterations; ++i){
+        Serial.println(orthogonal_reference_data[i],4);
+    }
+    
     Serial.println("BUFFER_SINE_FINISHED");
 }
 void autoRamp2(std::vector<String> DB)
