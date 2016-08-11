@@ -562,6 +562,7 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
     //Online updates
     String update, command;
     char byte;
+    int should_read = 0;
     
     //Peak-to-Peak data
     float max_value, min_value, last_read;
@@ -637,13 +638,18 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
 
       
       current_radian += single_step_rad;
-      last_read=readADCWithoutPrint(adc_channel);
-      if (last_read > max_value){
-          max_value = last_read;
-      }
-      if (last_read < min_value){
-          min_value = last_read;
-      }
+      /*if (should_read){
+        last_read=readADCWithoutPrint(adc_channel);
+        if (last_read > max_value){
+            max_value = last_read;
+        }
+        if (last_read < min_value){
+            min_value = last_read;
+        }
+        should_read = 0;
+      } else {
+        should_read = 1;
+      }*/
       while(micros() <= timer + waiting_time);
   }
 }
