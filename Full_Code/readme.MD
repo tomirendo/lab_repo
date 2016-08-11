@@ -10,5 +10,5 @@ We copied most of OpenDAC's instructions that you can read about here:
 http://opendacs.com/dac-adc-homepage/how-to-communicate-with-the-dac-adc/
 
 The duck has two new commands:
-	*SINE
-	*SINE_READ
+	* SINE
+	* SINE_READ
