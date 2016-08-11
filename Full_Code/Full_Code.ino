@@ -638,7 +638,7 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
 
       
       current_radian += single_step_rad;
-      /*if (should_read){
+      if (should_read){
         last_read=readADCWithoutPrint(adc_channel);
         if (last_read > max_value){
             max_value = last_read;
@@ -649,7 +649,7 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
         should_read = 0;
       } else {
         should_read = 1;
-      }*/
+      }
       while(micros() <= timer + waiting_time);
   }
 }
