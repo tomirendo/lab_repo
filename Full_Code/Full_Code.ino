@@ -551,12 +551,13 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
 
     int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
     double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
+    float ref_amp = amp;
     Serial.print("Sine with read is running real freq : ");
     Serial.println(real_freq);
     double single_step_rad = 2*3.1415926 / steps;
     double current_radian = 0;
     int timer;
-    double value_to_write, value_to_reference;
+    double sine_value, value_to_reference;
     
     //Online updates
     String update, command;
@@ -602,8 +603,24 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
               //Init max\min values
               max_value = -100;
               min_value = 100;
-          } else if (command == "PK"){
-              Serial.println(max_value -  min_value, 4);
+          } else if (command == "RF"){
+            //Set reference amplitude
+            ref_amp  = update.toFloat();
+          }else if (command == "PK"){
+            //Peak to Peak Value
+              Serial.println(max_value -  min_value, 5);
+          } else if (command == "MX"){
+            //Maximum Value
+              Serial.println(max_value, 5);
+          } else if (command == "MN"){
+            //Minimum Value
+              Serial.println(min_value, 5);
+          } else if (command == "MD"){
+            //Mean Value
+            Serial.println((max_value + min_value)/2);
+          } else if (command == "RD"){
+            Serial.println(readADCWithoutPrint(adc_channel));
+
           }
         
       }
@@ -612,8 +629,13 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
       
       //Applying sine Current
       timer = micros();
-      value_to_write =  sin(current_radian)*amp + mid;
-      writeDAC(dac_channel, value_to_write);
+      sine_value =  sin(current_radian);
+      writeDAC(dac_channel, sine_value*amp + mid);
+
+      //Write Reference sine
+      writeDAC(3, sine_value*ref_amp + mid); 
+
+      
       current_radian += single_step_rad;
       last_read=readADCWithoutPrint(adc_channel);
       if (last_read > max_value){
