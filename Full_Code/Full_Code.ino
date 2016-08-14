@@ -558,6 +558,11 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
     double current_radian = 0;
     int timer;
     double sine_value, value_to_reference;
+
+    //Steps to new DC
+    double dc_step;
+    int steps_taken, total_steps = 10;
+    steps_taken = total_steps;
     
     //Online updates
     String update, command;
@@ -595,7 +600,8 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
           command.trim();
           update.trim();
           if (command == "DC") {
-              mid = update.toFloat();
+              steps_taken = 0;
+              dc_step = (update.toFloat() - mid)/total_steps;
               //Init max\min values
               max_value = -100;
               min_value = 100;
@@ -631,10 +637,15 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
       //Applying sine Current
       timer = micros();
       sine_value =  sin(current_radian);
+      if (steps_taken < total_steps){
+        mid = mid + dc_step;
+        steps_taken++;
+      }
       writeDAC(dac_channel, sine_value*amp + mid);
 
       //Write Reference sine
-      writeDAC(3, sine_value*ref_amp + mid); 
+      //writeDAC(3, sine_value*ref_amp + mid); 
+      writeDAC(3, sine_value*ref_amp); 
 
       
       current_radian += single_step_rad;
