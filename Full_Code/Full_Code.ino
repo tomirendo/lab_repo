@@ -560,9 +560,9 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
     double sine_value, value_to_reference;
 
     //Steps to new DC
-    double dc_step;
-    int steps_taken, total_steps = 10;
-    steps_taken = total_steps;
+    double dc_step, target_dc;
+    int steps_taken;
+    steps_taken = steps;
     
     //Online updates
     String update, command;
@@ -601,7 +601,8 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
           update.trim();
           if (command == "DC") {
               steps_taken = 0;
-              dc_step = (update.toFloat() - mid)/total_steps;
+              target_dc = update.toFloat();
+              dc_step = (target_dc - mid)/steps;
               //Init max\min values
               max_value = -100;
               min_value = 100;
@@ -637,7 +638,10 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
       //Applying sine Current
       timer = micros();
       sine_value =  sin(current_radian);
-      if (steps_taken < total_steps){
+      if (steps_taken == steps){
+        mid = target_dc;
+        steps_taken++;
+      } else if (steps_taken < steps){
         mid = mid + dc_step;
         steps_taken++;
       }
