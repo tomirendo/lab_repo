@@ -2,7 +2,7 @@
 
 <!---
 	This file looks much better if you open it from here:
-		https://github.com/tomirendo/lab_repo/blob/master/Duck%20and%20MeasApp.md
+		https://github.com/tomirendo/lab_repo/blob/master/Full_Code/readme.MD
 
 	Alternatively, you can open this file locally in Chrome if you have the "MarkDown Preview Plus" plugin with "Allow access to file URLs" enabled (can be done here: "chrome://extensions/")
 
@@ -41,11 +41,11 @@ The duck version currently has 1 additional command:
 
 ## Sine
 Command signature:
-	SINE, {DAC_CHANNEL}, {Frequency}, {POINTS_ON_GRAPH}
 
-#### DAC_CHANNEL
-- Output channel. In addition to the requested channel, the same signal would come out of channel 3 as reference channel. The AC current of the reference channel can be changed using the RF command (more details below).
-- currently the reference channel outputs no DC current?
+	SINE,{DAC_CHANNEL},{Frequency},{POINTS_ON_GRAPH}
+
+* DAC_CHANNEL
+ - Output channel. In addition to the requested channel, the same signal would come out of channel 3 as reference channel. The AC current of the reference channel can be changed using the RF command (more details below).
 
 #### ADC_CHANNEL
 
