@@ -1,11 +1,18 @@
 # Duck Documentation
-## DAC-ADC parts and assembly
+### DAC-ADC parts and assembly
+
+![](http://i.imgur.com/j1jujAp.jpg=100x20)
 
 The product is based on openDACs's recipe. For more details:
 http://opendacs.com/dac-adc-homepage/
 
+### Output Voltage
+The minimum step of the output voltage is approx:
 
-#Communication
+$$ \Delta V = \frac{Max - Min}{2^{bits}} = \frac{10 - (-10)}{2^{16}} \approx 0.3\cdot10^{-3} volt $$
+
+with this output voltage we can get a clear signal for $AC \approx 30 \cdot 10 ^{-3}\  volt$, and a good signal for $AC \approx 3 \cdot 10 ^-3\  volt$ (RMS).
+### Communication
 We copied most of OpenDAC's instructions that you can read about here:
 
 http://opendacs.com/dac-adc-homepage/how-to-communicate-with-the-dac-adc/
@@ -29,13 +36,9 @@ Command signature:
 
 
 
-## To do
-* Buggy at high voltages
+### To do
 * On\Off read
-* simpler commands to begin voltage (Set DC command)
-* DC current on reference channel?
 
 
-
-## Extras
+### Extras
 * ?Display, Leds?
