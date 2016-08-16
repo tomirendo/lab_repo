@@ -20,9 +20,9 @@ int drdy=48; // Data is ready pin on ADC
 int led = 32;
 int data=28;//Used for trouble shooting; connect an LED between pin 13 and GND
 int err=30;
-const int Noperations = 14;
+const int Noperations = 12;
 //hwm::WaveTable table(1024);
-String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE", "BUFFER_SINE", "SINE_READ"};
+String operations[Noperations] = {"NOP", "SET", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "SINE"};
 
 namespace std {
   void __throw_bad_alloc()
@@ -484,74 +484,15 @@ void autoRamp1(std::vector<String> DB)
     while(micros() <= timer + DB[5].toInt());
   }
 }
-void sine(int dac_channel, float mid, float amp, float frequency, int steps){
+
+void sine(int dac_channel, double mid, double amp, double frequency, int steps){
     //Yotam
-    /*
-        Running Sine funciton on dac_channel in an infinit loop
-        To run a new command, reset the arduino using the Serial protocol
-        (python pyserial.Serial.reset_output_buffer)
-     */
-    int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
-    double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
-    Serial.print("Running real freq : ");
-    Serial.println(real_freq);
-    double single_step_rad = 2*3.1415926 / steps;
-    double current_radian = 0;
-    int timer;
-    double value_to_write, value_to_reference;
-    
-    //Online updates
-    String update, command;
-    char byte;
-    
-    
-  while (1){
-      
-      if (Serial.available()){
-          update = "";
-          command = "";
-          do {
-              byte = Serial.read();
-              
-              if (byte == '\xff'){
-                  ; //Ignore
-              } else if (byte == ' ') {
-                  command = update;
-                  update = "";
-              } else {
-                  update.concat(byte);
-              }
-              
-          } while (byte != '\r');
-          
-          while (Serial.available()){
-              Serial.read();
-          }
-          
-          command.trim();
-          update.trim();
-          if (command == "DC") {
-              mid = update.toFloat();
-          } else if (command == "AC"){
-              amp = update.toFloat();
-          }
-      }
-      
-      timer = micros();
-      value_to_write =  sin(current_radian)*amp + mid;
-      writeDAC(dac_channel, value_to_write);
-      current_radian += single_step_rad;
-      while(micros() <= timer + waiting_time);
-  }
-}
-void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, float frequency, int steps){
-    //Yotam
-    //
-    // Just like Sine, but running n times and reading along.
+    //Runs sine function with initial amplitude and DC current (mid).
+    //Because of integer rounding errors, prints the real frequency.
 
     int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
     double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
-    float ref_amp = amp;
+    double ref_amp = amp;
     Serial.print("Sine with read is running real freq : ");
     Serial.println(real_freq);
     double single_step_rad = 2*3.1415926 / steps;
@@ -563,16 +504,12 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
     double dc_step, target_dc;
     int steps_taken;
     steps_taken = steps;
+    target_dc = mid;
     
     //Online updates
     String update, command;
     char byte;
     int should_read = 0;
-    
-    //Peak-to-Peak data
-    float max_value, min_value, last_read;
-    max_value = -1000;
-    min_value = 1000;
     
     
   while (1){
@@ -600,35 +537,19 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
           command.trim();
           update.trim();
           if (command == "DC") {
-              steps_taken = 0;
               target_dc = update.toFloat();
-              dc_step = (target_dc - mid)/steps;
-              //Init max\min values
-              max_value = -100;
-              min_value = 100;
+              if (abs(target_dc)+ abs(amp) <= 10){
+                steps_taken = 0;
+                dc_step = (target_dc - mid)/steps;
+
+            }
           } else if (command == "AC"){
-              amp = update.toFloat();
-              //Init max\min values
-              max_value = -100;
-              min_value = 100;
+            if (abs(update.toFloat()) + abs(mid) <= 10){
+                amp = update.toFloat();
+            }
           } else if (command == "RF"){
             //Set reference amplitude
             ref_amp  = update.toFloat();
-          }else if (command == "PK"){
-            //Peak to Peak Value
-              Serial.println(max_value -  min_value, 5);
-          } else if (command == "MX"){
-            //Maximum Value
-              Serial.println(max_value, 5);
-          } else if (command == "MN"){
-            //Minimum Value
-              Serial.println(min_value, 5);
-          } else if (command == "MD"){
-            //Mean Value
-            Serial.println((max_value + min_value)/2);
-          } else if (command == "RD"){
-            Serial.println(readADCWithoutPrint(adc_channel));
-
           }
         
       }
@@ -638,6 +559,8 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
       //Applying sine Current
       timer = micros();
       sine_value =  sin(current_radian);
+
+      //Ramping
       if (steps_taken == steps){
         mid = target_dc;
         steps_taken++;
@@ -653,18 +576,6 @@ void sine_with_read(int dac_channel, int adc_channel, float mid, float amp, floa
 
       
       current_radian += single_step_rad;
-      if (should_read){
-        last_read=readADCWithoutPrint(adc_channel);
-        if (last_read > max_value){
-            max_value = last_read;
-        }
-        if (last_read < min_value){
-            min_value = last_read;
-        }
-        should_read = 0;
-      } else {
-        should_read = 1;
-      }
       while(micros() <= timer + waiting_time);
   }
 }
@@ -838,15 +749,8 @@ void router(std::vector<String> DB)
     RDY();
     break;
           
-      case 11: // Sine Wave
+      case 11:
           sine(DB[1].toInt(), DB[2].toFloat(), DB[3].toFloat(), DB[4].toFloat(), DB[5].toFloat());
-      break;
-      case 12:
-          sine_buffer(DB[1].toInt(), DB[2].toInt(), DB[3].toFloat(),
-                      DB[4].toFloat(), DB[5].toFloat(), DB[6].toFloat() ,DB[7].toFloat());
-          break;
-      case 13:
-          sine_with_read(DB[1].toInt(), DB[2].toInt(), DB[3].toFloat(), DB[4].toFloat(), DB[5].toFloat(), DB[6].toFloat());
           break;
 
     default:
