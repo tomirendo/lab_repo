@@ -33,16 +33,18 @@ The device communicates through the serial port (baudrate 115200) and accepts co
 
 Ramps the voltage on port 2 from $-4 \ volt$ to $4.8 \ volt$ in 50 steps with 10 microseconds of delay. Commands always end with '\r' (13 in ASCII). The device ignores any '\n's.
 
+### The Duck version
 
 The duck version currently has 1 additional command:
 
 * SINE
 
+After the initial connection to the device, the Duck sends a single '\n' that should be cleared from its output (or just read but the software).
 
 ## Sine
 Command signature:
 
-	SINE,{DAC_CHANNEL},{DC_VOLTAGE},{AC_AMPLITUDE},{FREQUENCY},{POINTS_ON_GRAPH}
+	SINE,{DAC_CHANNEL},{DC_VOLTAGE},{AC_AMPLITUDE},{FREQUENCY},{POINTS_ON_GRAPH}\r
 
 * DAC_CHANNEL - Output channel. In addition to the requested channel, the same signal would come out of channel 3 as reference channel. The AC current of the reference channel can be changed using the RF command (more details below).
 * DC_VOLTAGE - The initial DC voltage out of the output channel. This doesn't affect the reference port.
@@ -61,9 +63,16 @@ Ending with a line break. {real_freq} is replace with the real expected frequenc
 
 #### Example 
 
-    SINE,2,1,0.03,17,80
+    SINE,2,1,0.03,17,80\r
 
 Would produce a DC voltage of $1 \ volt$ on both port 2 and port 3 (reference), with additional AC current with amplitude $30 \ milivolt$ using 80 points on the graph.
+
+### The SINE state
+The SINE command differs from other DAC-ADC command since it never stops. You can only use a small set of commands to update the SINE signal that runs on the selected port. In order to change the status of the device (to produce a RAMP or even a different SINE signal) the Duck should be restarted (In matlab, simply using fclose(serial_device) and the fopen(serial_device))
+
+#### AC
+#### DC
+#### RF
 
 ### To do
 * On\Off read
