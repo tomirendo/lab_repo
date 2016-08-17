@@ -33,6 +33,30 @@ The device communicates through the serial port (baudrate 115200) and accepts co
 
 Ramps the voltage on port 2 from $-4 \ volt$ to $4.8 \ volt$ in 50 steps with 10 microseconds of delay. Commands always end with '\r' (13 in ASCII). The device ignores any '\n's.
 
+### Code structure
+
+The DAC-ADC actions are controlled in the 
+    
+    void router(std::vector<String> DB)
+
+function. This command accepts a vector of strings (mutable list) called DB that came from the Serial connection. Each string in the vector represents an argument of the given command. for example the command:
+    
+    RAMP1,2,-4,4.8,50,10\r
+
+Would result in DB[0] being 'RAMP1' and DB[5] being the string '10'. There are Arduino String so DB[5].toInt() would be the number 10.
+#### useful functions
+    float writeDAC(int dacChannel, float voltage)
+
+Writes the requested voltage to the dacChannel.
+
+    void readADC(byte DB)
+
+Reads the voltage on a single channel (the DB parameter) and writes it though the Serial connection.
+
+    float readADCWithoutPrint(byte DB)
+
+Reads the current voltage of a single channel and return its value as a floating point number. Duck only. 
+
 ### The Duck version
 
 The duck version currently has 1 additional command:
