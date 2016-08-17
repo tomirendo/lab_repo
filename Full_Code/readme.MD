@@ -68,15 +68,54 @@ Ending with a line break. {real_freq} is replace with the real expected frequenc
 Would produce a DC voltage of $1 \ volt$ on both port 2 and port 3 (reference), with additional AC current with amplitude $30 \ milivolt$ using 80 points on the graph.
 
 ### The SINE state
-The SINE command differs from other DAC-ADC command since it never stops. You can only use a small set of commands to update the SINE signal that runs on the selected port. In order to change the status of the device (to produce a RAMP or even a different SINE signal) the Duck should be restarted (In matlab, simply using fclose(serial_device) and the fopen(serial_device))
+The SINE command differs from other DAC-ADC command in that it never stops. You can only use a small set of commands to update the SINE signal that runs on the selected port. In order to change the status of the device (to produce a RAMP or even a different SINE signal) the Duck should be restarted (In matlab, simply using fclose(serial_device) and the fopen(serial_device)).
+
+There are some accepted command during the SINE state, that can affect the reference, AC or DC voltages. 
 
 #### AC
+Signature :
+    
+    AC {voltage}\r
+
+Updates the AC voltage amplitude of the output channel to the {voltage} specified(and only the output channel. this doesn't affect the reference channel). 
+
+Example :
+    
+    AC 0.03\r
+
+Updates the voltage amplitude of the output channel to $30 \ milivolt$. This doesn't affect the reference channel amplitude.
+
 #### DC
+
+Signature :
+    
+    DC {voltage}\r
+
+Updates the DC voltage of the output channel to the {voltage} specified(and only the output channel. this doesn't affect the reference channel). 
+
+Example :   
+
+    DC 3.2\r
+
+Updates the DC voltage of the output channel to $3.2 \ volt$. This doesn't affect the reference channel.
+
 #### RF
+
+Signature:
+    
+    RF {voltage}\r
+
+Updates the AC voltage amplitude of the reference channel (3). This doesn't affect the output channel in any way.
+
+
+Example :
+    
+    RF 1\r
+
+Sets the output voltage of the reference channel to $1 \ volt$. This doesn't affect the output channel.
 
 ### To do
 * On\Off read
-
 
 ### Extras
 * ?Display, Leds?
