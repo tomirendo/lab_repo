@@ -77,7 +77,7 @@ Command signature:
 * POINTS_ON_GRAPH - The amount of data point the arduino will draw to simulate an AC current. More points would amount to a clearer signal. Too many point would slow the process down and result in a lower frequency.
 
 The calculation of the amplitude at a given point is:
-$A_{mp} = DC_VOLTAGE \cdot sin(step / POINTS_ON_GRAPH) \cdot AC_AMPLITUDE$
+$A_{mp} = (DC\ VOLTAGE)+sin(2\cdot \pi \cdot step / (POINTS\ ON\ GRAPH)) \cdot (AC\ AMPLITUDE)$
 #### Output 
 The command outputs:
 
@@ -89,7 +89,7 @@ Ending with a line break. {real_freq} is replace with the real expected frequenc
 
     SINE,2,1,0.03,17,80\r
 
-Would produce a DC voltage of $1 \ volt$ on both port 2 and port 3 (reference), with additional AC current with amplitude $30 \ milivolt$ using 80 points on the graph.
+Would produce a DC voltage of $1 \ volt$ on port 2, with additional AC current with amplitude $30 \ milivolt$ using 80 points on the graph on both port 2 and port 3 (reference).
 
 ### The SINE state
 The SINE command differs from other DAC-ADC command in that it never stops. You can only use a small set of commands to update the SINE signal that runs on the selected port. In order to change the status of the device (to produce a RAMP or even a different SINE signal) the Duck should be restarted (In matlab, simply using fclose(serial_device) and the fopen(serial_device)).
