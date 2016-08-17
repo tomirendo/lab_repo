@@ -42,14 +42,28 @@ The duck version currently has 1 additional command:
 ## Sine
 Command signature:
 
-	SINE,{DAC_CHANNEL},{Frequency},{POINTS_ON_GRAPH}
+	SINE,{DAC_CHANNEL},{DC_VOLTAGE},{AC_AMPLITUDE},{FREQUENCY},{POINTS_ON_GRAPH}
 
-* DAC_CHANNEL
- - Output channel. In addition to the requested channel, the same signal would come out of channel 3 as reference channel. The AC current of the reference channel can be changed using the RF command (more details below).
+* DAC_CHANNEL - Output channel. In addition to the requested channel, the same signal would come out of channel 3 as reference channel. The AC current of the reference channel can be changed using the RF command (more details below).
+* DC_VOLTAGE - The initial DC voltage out of the output channel. This doesn't affect the reference port.
+* AC_AMPLITUDE - The initial AC voltage amplitude out of both the output channel and the reference channel.
+* FREQUENCY -  The frequency of the AC signal in Hz
+* POINTS_ON_GRAPH - The amount of data point the arduino will draw to simulate an AC current. More points would amount to a clearer signal. Too many point would slow the process down and result in a lower frequency.
 
-#### ADC_CHANNEL
+The calculation of the amplitude at a given point is:
+$A_{mp} = DC_VOLTAGE \cdot sin(step / POINTS_ON_GRAPH) \cdot AC_AMPLITUDE$
+#### Output 
+The command outputs:
 
+        Sine with read is running real freq : {real_freq}
 
+Ending with a line break. {real_freq} is replace with the real expected frequency that results from the rounding errors.
+
+#### Example 
+
+    SINE,2,1,0.03,17,80
+
+Would produce a DC voltage of $1 \ volt$ on both port 2 and port 3 (reference), with additional AC current with amplitude $30 \ milivolt$ using 80 points on the graph.
 
 ### To do
 * On\Off read
