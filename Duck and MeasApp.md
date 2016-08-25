@@ -8,7 +8,30 @@
 	To see the Math properly, check "Enable LaTeX delimiters" in the "MarkDown Preview Plus" plugin settings.
 	
 -->
+## Required Drivers
+On windows (and probably on other platforms as well) the Arduino Due that manages that duck requires a driver. I am not sure which one so I would simply recommend installing the Arduino IDE :
+
+https://www.arduino.cc/en/Main/Software
+
+In case this driver doesn't solve the problem, you can install the specific Arduino Due Driver inside the Arduino IDE application (Tools -> Board : "NAME OF BOARD" -> Board manager. In the Board manager search for Arduino Due).
+
+If it still doesn't work, use the information in this forum post:
+
+http://forum.arduino.cc/index.php?topic=104698.0
+
+## Communication with the duck using MeasApp
+
+The duck has 2 states:
+* DC and ADC on as many ports as needed
+* AC+DC on a single port, and AC on a single reference port (port 3)
+
+
+
+## DC and ADC
+
+	
 ## Begin AC+DC on port:
+
 Signature:
 
 
