@@ -10,6 +10,7 @@
 #define MILISECONDS_IN_SECOND 1000
 #define MICROSECONDS_IN_SECOND 1000000
 #define PRE_ITERATIONS 3
+#define NUMBER_OF_PORTS 4
 
 int adc=52; //The SPI pin for the ADC
 int dac=4;  //The SPI pin for the DAC
@@ -103,6 +104,10 @@ void setup()
   SPI.transfer(dac,1,SPI_CONTINUE);
   SPI.transfer(dac,0,SPI_CONTINUE);
   SPI.transfer(dac,1);
+
+  //Yotam debug led
+  pinMode(14, OUTPUT);
+  digitalWrite(14, HIGH); 
 }
 
 void blinker(int s){
@@ -485,14 +490,15 @@ void autoRamp1(std::vector<String> DB)
   }
 }
 
-void sine(int dac_channel, double mid, double amp, double frequency, int steps){
+void sine(double frequency, int steps){
     //Yotam
     //Runs sine function with initial amplitude and DC current (mid).
     //Because of integer rounding errors, prints the real frequency.
+    double mid[] = {0,0,0,0};
+    double amp[] = {0,0,0,0};
 
     int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
     double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
-    double ref_amp = amp;
     Serial.print("Sine with read is running real freq : ");
     Serial.println(real_freq);
     double single_step_rad = 2*3.1415926 / steps;
@@ -501,15 +507,22 @@ void sine(int dac_channel, double mid, double amp, double frequency, int steps){
     double sine_value, value_to_reference;
 
     //Steps to new DC
-    double dc_step, target_dc;
-    int steps_taken;
-    steps_taken = steps;
-    target_dc = mid;
+    double dc_step[] = {0,0,0,0};
+    double target_dc[NUMBER_OF_PORTS];
+    int steps_taken[NUMBER_OF_PORTS];
+    for (int i = 0 ; i < NUMBER_OF_PORTS; ++i){
+      steps_taken[i] = steps;
+      target_dc[i] = mid[i];
+    }
     
     //Online updates
     String update, command;
     char byte;
-    int should_read = 0;
+    int port;
+
+    //Yotam Debug Pin
+    digitalWrite(14, LOW);
+
     
     
   while (1){
@@ -536,23 +549,34 @@ void sine(int dac_channel, double mid, double amp, double frequency, int steps){
           
           command.trim();
           update.trim();
+          /*
+            Command syntax is:
+              COMMAND value:port
+
+            for example :
+              DC -3.4:2
+
+            sets the DC value of port 2 to -3.4
+          */
+          int port =  update.substring(update.indexOf(':')+1).toInt();
+          update = update.substring(0, update.indexOf(':'));
+
           if (command == "DC") {
-              target_dc = update.toFloat();
-              if (abs(target_dc)+ abs(amp) <= 10){
-                steps_taken = 0;
-                dc_step = (target_dc - mid)/steps;
+              target_dc[port] = update.toFloat();
+              if (abs(target_dc[port])+ abs(amp[port]) <= 10){
+                steps_taken[port] = 0;
+                dc_step[port] = (target_dc[port] - mid[port])/steps;
 
             }
           } else if (command == "AC"){
-            if (abs(update.toFloat()) + abs(mid) <= 10){
-                amp = update.toFloat();
+            if (abs(update.toFloat()) + abs(mid[port]) <= 10){
+                amp[port] = update.toFloat();
             }
           } else if (command == "RF"){
             //Set reference amplitude
-            ref_amp  = update.toFloat();
           }
         
-      }
+        }
       
       
       
@@ -561,18 +585,20 @@ void sine(int dac_channel, double mid, double amp, double frequency, int steps){
       sine_value =  sin(current_radian);
 
       //Ramping
-      if (steps_taken == steps){
-        mid = target_dc;
-        steps_taken++;
-      } else if (steps_taken < steps){
-        mid = mid + dc_step;
-        steps_taken++;
+      for (int i = 0; i<NUMBER_OF_PORTS; i++){
+        if (steps_taken[i] == steps){
+          mid[i] = target_dc[i];
+          steps_taken[i]++;
+        } else if (steps_taken[i] < steps){
+          mid[i] = mid[i] + dc_step[i];
+          steps_taken[i]++;
+        }
+        writeDAC(i, sine_value*amp[i] + mid[i]);
       }
-      writeDAC(dac_channel, sine_value*amp + mid);
 
       //Write Reference sine
       //writeDAC(3, sine_value*ref_amp + mid); 
-      writeDAC(3, sine_value*ref_amp); 
+      //writeDAC(3, sine_value*ref_amp); 
 
       
       current_radian += single_step_rad;
@@ -750,7 +776,8 @@ void router(std::vector<String> DB)
     break;
           
       case 11:
-          sine(DB[1].toInt(), DB[2].toFloat(), DB[3].toFloat(), DB[4].toFloat(), DB[5].toFloat());
+          //Two parameters are not required
+          sine(DB[1].toFloat(), DB[2].toFloat());
           break;
 
     default:
