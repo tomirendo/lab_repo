@@ -14,6 +14,22 @@ def run_operation(serial_device, op = "NOP", ver = False):
         print("OP {} returned {}".format(op.decode(),data))
     return data
 
+class Duck:
+    def __init__(self, *serial_device_parameters):
+        self.serial_device = Serial(*serial_device_parameters)
+        init_serial(self.serial_device)
+
+    def __enter__(self):
+        self.serial_device.__enter__()
+        return self
+
+    def __exit__(self, *exp):
+        self.serial_device.__exit__(*exp)
+
+    def run(self, op = "NOP", verbose = False):
+        run_operation(self.serial_device, op, verbose)
+
+
 def run_without_read(serial_device, op = "NOP", ver = False):
     if isinstance(op, str):
         op = op.encode()

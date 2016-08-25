@@ -139,7 +139,7 @@ Example :
 Sets the output voltage of the reference channel to $1 \ volt$. This doesn't affect the output channel.
 
 ### To do
-* On\Off read
+* Stop sine
 
 ### Extras
 * ?Display, Leds?
