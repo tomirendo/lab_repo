@@ -22,86 +22,110 @@ http://forum.arduino.cc/index.php?topic=104698.0
 ## Communication with the duck using MeasApp
 
 The duck has 2 states:
-* DC and ADC on as many ports as needed
-* AC+DC on a single port, and AC on a single reference port (port 3)
-
+* __**DC and ADC**__ - Write DC values on 4 DAC ports, and read DC values from 4 ADC ports.
+* __**AC+DC**__ - Outputs a sine wave with additional DC current on the 4 DAC ports.
 
 
 ## DC and ADC
 
-	
-## Begin AC+DC on port:
+The duck works in 2 states. The DC and ADC states can both Write DC values to any of the 4 ports, and read DC values from any of its 4 ADC ports. 
 
+### Write DC
 Signature:
 
 
-	set duck.AC{port number} {Frequency} {points on graph}
+	set duck.DC{port} {voltage}
 
-* Port Number - can either be 0, 1 or 2
+* Port - Port to update
+* Voltage - Voltage to write on port.
+
+##### Examples:
+	
+	set duck.DC2 -4
+
+Updates the output voltage on port number 2 to $-4 \ Volts$.
+
+
+### Read ADC
+Signature:
+
+	duck.ADC{port}
+
+* Port - ADC Port to read
+
+##### Examples:
+	
+	duck.ADC2 
+
+In the measuring list, will read port 2 of the ADC.
+
+	
+## AC+DC:
+
+Enters AC+DC mode. In this mode the duck changes every DAC port to 0 voltage, and begin running a sine wave on all of its ports. The sine waves begin with both AC and DC parameters as 0 (so you will see a permanent 0 DC voltage from all of them). 
+
+After running this command you can update the AC and DC parameters of each port using the commands below.
+
+
+### Bugs
+Make sure that we you do anything in AC+DC mode, not to have any duck.ADC* on your measuring list.
+
+** This is a bug in the way the duck communicates with MeasApp, hopefuly this will be fixed soon.** 
+
+### Begin AC+DC
+Signature:
+
+
+	set duck.AC {Frequency} {points on graph}
+
 * Frequency - in Hz
 * Points on graph - number of voltage points the DAC will actually produce. More points will produce a more precise signal.
 
 ##### Examples:
 	
-	set duck.AC2 17 80
+	set duck.AC 17 80
 
-runs AC+DC on port 2, 17Hz and 80 points on the graph. The default values of the AC, DC and RF current are 0 (more details are below).
+runs AC+DC with frquency of 17Hz and 80 points on the graph. The default values of the AC and DC are 0 (more details are below).
 
-
-## Update AC,DC,RF on a running AC+DC signal
+## Update AC,DC on a running AC+DC signal
 
 If the duck is running an AC+DC signal on a port, you can update the signal parameters using the set or sweep commands.
 
-The Min\Max voltage for the duck is $\pm 10 volt$. 'AC' and 'DC' commands would not respond if $|AC| + |DC| > 10 $.
+The Min\Max voltage for the duck is $\pm 10 volt$. updating the AC or DC of any port would not respond if $|AC| + |DC| > 10 $.
 #### AC
-Updates the AC voltage of the output port currntly running AC+DC signal.
+Updates the AC voltage of the a port.
 signature:
 
-	set duck.AC {voltage} 
-	sweep duck.AC {begin_voltage} {end_voltage} {steps}
+	set duck.AC{port}AC {voltage}
+	sweep duck.AC{port}AC {begin_voltage} {end_voltage} {steps}
 
+* Port - port to update
 * Voltage - The AC voltage in RMS on the current AC+DC port
 
 ##### Example:
 	
-	set duck.AC 0.03
+	set duck.AC2AC 0.03
 
-sets the AC voltage to $30 milivolt$ on the current AC+DC port.
+sets the AC voltage to $30 milivolt$ on port number 2.
 
 #### DC
 Updates the DC voltage of the output port currntly running AC+DC signal.
 signature:
 	
-	set duck.DC {voltage}  
-	sweep duck.DC {begin_voltage} {end_voltage} {steps}
+	set duck.AC{port}DC {voltage}  
+	sweep duck.AC{port}DC {begin_voltage} {end_voltage} {steps}
 
-* Voltage - The DC voltage on the AC+DC port
+* Port - port to update
+* Voltage - The DC voltage on the port
 
 ##### Example 1:
 	
-	set duck.DC -9
+	set duck.AC2DC -9
 
-Sets the DC voltage on the AC+DC port to $-9 \ volt$
+Sets the DC voltage on port number 2 to $-9 \ volt$
 
 ##### Example 2:	
 
-	sweep duck.DC -9 9 100
+	sweep duck.AC2DC -9 9 100
 
-sweeps from -9 to 9 volt in 100 steps.
-	
-
-#### RF 
-Updates the AC reference voltage that comes out of port 3 (Right hand side of the box).
-
-signature :
-	
-	set duck.RF {voltage}
-
-* Voltage - The AC voltage on the reference port (3) in RMS.
-
-##### example
-	
-	set duck.RF 1
-
-sets the AC voltage out of the reference port (3) to $1\  volt$.
-
+sweeps from -9 to 9 volt in 100 steps on port number 2.
