@@ -68,9 +68,9 @@ After running this command you can update the AC and DC parameters of each port 
 
 
 ### Bugs
-Make sure that we you do anything in AC+DC mode, not to have any duck.ADC* on your measuring list.
+Make sure when you do anything in AC+DC mode, not to have any duck.ADC* on your measuring list.
 
-** This is a bug in the way the duck communicates with MeasApp, hopefuly this will be fixed soon.** 
+**This is a bug in the way the duck communicates with MeasApp, hopefuly this will be fixed soon.** 
 
 ### Begin AC+DC
 Signature:
