@@ -490,12 +490,16 @@ void autoRamp1(std::vector<String> DB)
   }
 }
 
-void sine(double frequency, int steps){
+void sine(double frequency, int steps, double voltage_per_second){
     //Yotam
     //Runs sine function with initial amplitude and DC current (mid).
     //Because of integer rounding errors, prints the real frequency.
     double mid[] = {0,0,0,0};
     double amp[] = {0,0,0,0};
+    //Optimization
+    double prev_value[] = {0,0,0,0};
+    double voltage_per_step = voltage_per_second / steps / frequency;
+//    int steps_to_ramp = time_to_ramp * steps * frequency;
 
     int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
     double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
@@ -507,13 +511,7 @@ void sine(double frequency, int steps){
     double sine_value, value_to_reference;
 
     //Steps to new DC
-    double dc_step[] = {0,0,0,0};
-    double target_dc[NUMBER_OF_PORTS];
-    int steps_taken[NUMBER_OF_PORTS];
-    for (int i = 0 ; i < NUMBER_OF_PORTS; ++i){
-      steps_taken[i] = steps;
-      target_dc[i] = mid[i];
-    }
+    double target_dc[] = {0,0,0,0};
     
     //Online updates
     String update, command;
@@ -562,12 +560,10 @@ void sine(double frequency, int steps){
           update = update.substring(0, update.indexOf(':'));
 
           if (command == "DC") {
+            if (abs(target_dc[port])+ abs(amp[port]) <= 10){
               target_dc[port] = update.toFloat();
-              if (abs(target_dc[port])+ abs(amp[port]) <= 10){
-                steps_taken[port] = 0;
-                dc_step[port] = (target_dc[port] - mid[port])/steps;
-
             }
+
           } else if (command == "AC"){
             if (abs(update.toFloat()) + abs(mid[port]) <= 10){
                 amp[port] = update.toFloat();
@@ -585,15 +581,23 @@ void sine(double frequency, int steps){
       sine_value =  sin(current_radian);
 
       //Ramping
+      double curr_value;
       for (int i = 0; i<NUMBER_OF_PORTS; i++){
-        if (steps_taken[i] == steps){
+
+        if (abs(mid[i] - target_dc[i]) > voltage_per_step){
+          if (mid[i] < target_dc[i]){
+            mid[i] += voltage_per_step;
+          } else {
+            mid[i] -= voltage_per_step;
+          }
+        } else {
           mid[i] = target_dc[i];
-          steps_taken[i]++;
-        } else if (steps_taken[i] < steps){
-          mid[i] = mid[i] + dc_step[i];
-          steps_taken[i]++;
         }
-        writeDAC(i, sine_value*amp[i] + mid[i]);
+        curr_value = sine_value*amp[i] + mid[i]; 
+        if (curr_value != prev_value[i]){
+          writeDAC(i, curr_value);
+          prev_value[i] = curr_value;
+        }
       }
 
       //Write Reference sine
@@ -777,7 +781,7 @@ void router(std::vector<String> DB)
           
       case 11:
           //Two parameters are not required
-          sine(DB[1].toFloat(), DB[2].toFloat());
+          sine(DB[1].toFloat(), DB[2].toFloat(), DB[3].toFloat());
           break;
 
     default:
