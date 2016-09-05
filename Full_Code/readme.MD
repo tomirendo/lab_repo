@@ -140,6 +140,9 @@ Sets the output voltage of the reference channel to $1 \ volt$. This doesn't aff
 
 ### To do
 * Stop sine
+* Change sine while live
+* add instrument Meta data
+ * Places to update - CreateInst, SetInstMenu, SetInst, QueryMeta,StartRun
 
 ### Extras
 * ?Display, Leds?

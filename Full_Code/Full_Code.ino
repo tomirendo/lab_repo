@@ -490,6 +490,31 @@ void autoRamp1(std::vector<String> DB)
   }
 }
 
+std::vector<String> split_string_by_comma(String s) {
+  std::vector<String> v;
+  int comma_index =  s.indexOf(',');
+  while (comma_index >= 0){
+    v.push_back(s.substring(0, comma_index));
+    s = s.substring(comma_index+1);
+    comma_index =  s.indexOf(',');
+  }
+  v.push_back(s);
+  return v;
+
+}
+int wait_time(int steps, double freq){
+  return  (1/(steps*freq))*MICROSECONDS_IN_SECOND;
+}
+double round_freq(int steps, int waiting_time){
+  return (1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
+}
+double voltage_step(double voltage_per_second, int steps, double freq){
+    return voltage_per_second / steps / freq;
+}
+double radian_per_step(int steps){
+  return 2*3.1415926 / steps;
+}
+
 void sine(double frequency, int steps, double voltage_per_second){
     //Yotam
     //Runs sine function with initial amplitude and DC current (mid).
@@ -498,14 +523,13 @@ void sine(double frequency, int steps, double voltage_per_second){
     double amp[] = {0,0,0,0};
     //Optimization
     double prev_value[] = {0,0,0,0};
-    double voltage_per_step = voltage_per_second / steps / frequency;
-//    int steps_to_ramp = time_to_ramp * steps * frequency;
+    double voltage_per_step = voltage_step(voltage_per_second, steps, frequency);
+    int waiting_time = wait_time(steps, frequency);
+    double real_freq = round_freq(steps, waiting_time);
+    double single_step_rad = radian_per_step(steps);
 
-    int waiting_time = (1/(steps*frequency))*MICROSECONDS_IN_SECOND;
-    double real_freq =(1.0*MICROSECONDS_IN_SECOND)/steps / waiting_time;
     Serial.print("Sine with read is running real freq : ");
     Serial.println(real_freq);
-    double single_step_rad = 2*3.1415926 / steps;
     double current_radian = 0;
     int timer;
     double sine_value, value_to_reference;
@@ -556,8 +580,9 @@ void sine(double frequency, int steps, double voltage_per_second){
 
             sets the DC value of port 2 to -3.4
           */
-          int port =  update.substring(update.indexOf(':')+1).toInt();
           update = update.substring(0, update.indexOf(':'));
+          if ((command == "DC") || (command == "AC")){
+              int port =  update.substring(update.indexOf(':')+1).toInt();
 
           if (command == "DC") {
             if (abs(target_dc[port])+ abs(amp[port]) <= 10){
@@ -568,8 +593,24 @@ void sine(double frequency, int steps, double voltage_per_second){
             if (abs(update.toFloat()) + abs(mid[port]) <= 10){
                 amp[port] = update.toFloat();
             }
-          } else if (command == "RF"){
-            //Set reference amplitude
+          }
+          } else if (update.startsWith("SINE,")){
+            std::vector<String> v;
+            v = split_string_by_comma(update.substring(5));
+
+            if ((v.size() == 3)){
+              frequency = v[0].toFloat();
+              steps = v[1].toInt();
+              voltage_per_second = v[2].toFloat();
+              voltage_per_step = voltage_step(voltage_per_second, steps, frequency);
+              waiting_time = wait_time(steps, frequency);
+              real_freq = round_freq(steps, waiting_time);
+              single_step_rad = radian_per_step(steps);
+
+              Serial.print("Sine with read is running real freq : ");
+              Serial.println(real_freq);
+            } 
+
           }
         
         }
