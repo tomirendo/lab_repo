@@ -140,14 +140,12 @@ Sets the output voltage of the reference channel to $1 \ volt$. This doesn't aff
 
 ### To do
 * Stop sine
-<<<<<<< HEAD
 * Update sine parameters while it's running
 * Change I2C to SPI (Much faster) (http://forum.arduino.cc/index.php/topic,43241.0.html)
 =======
 * Change sine while live
 * add instrument Meta data
  * Places to update - CreateInst, SetInstMenu, SetInst, QueryMeta,StartRun
->>>>>>> cfeeb72fef522d83e0c1ba2d3fb6b112e97679f2
 
 ### Extras
 * ?Display, Leds?
