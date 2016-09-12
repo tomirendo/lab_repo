@@ -28,9 +28,21 @@ class Duck:
 
     def __exit__(self, *exp):
         self.serial_device.__exit__(*exp)
+        print("Closed Device")
 
     def run(self, op = "NOP", verbose = False, read = True):
         run_operation(self.serial_device, op, verbose, read)
+
+    def buffer_ramp(self, dac_channel, adc_channel,
+                begin_voltage, end_voltage, number_of_steps, 
+                delay_in_microsecs):
+        return _buffer_ramp(self.serial_device, dac_channel, adc_channel, 
+            begin_voltage, end_voltage, number_of_steps, 
+            delay_in_microsecs)
+    def fast_read(self, port, length, delay):
+        return _fast_read(self.serial_device, port, length, delay)
+
+
 
 
 def run_without_read(serial_device, op = "NOP", ver = False):
@@ -46,7 +58,7 @@ def buffer_sine(serial_device, dac_channel, adc_channel, mid_voltage,
     """
     if isinstance(str, dac_channels):
         dac_channels = "".join(dac_channels.split(","))
-    if isinstance(str, adc_channels):
+    if isinstance(str, adc_channels):0
         adc_channels = "".join(adc_channels.split(","))
     """
     from collections import namedtuple
@@ -73,7 +85,7 @@ def buffer_sine(serial_device, dac_channel, adc_channel, mid_voltage,
     df = DataFrame(result_as_list, index = arange(0, len(data)) * waiting_time)
     return df
 
-def buffer_ramp(serial_device, dac_channel, adc_channel,
+def _buffer_ramp(serial_device, dac_channel, adc_channel,
                 begin_voltage, end_voltage, number_of_steps, 
                 delay_in_microsecs):
     """
@@ -90,6 +102,17 @@ def buffer_ramp(serial_device, dac_channel, adc_channel,
     while reads[-1] != "BUFFER_RAMP_FINISHED":
         reads.append(serial_device.readline().decode().replace("\r\n",""))
     return [float(i) for i in reads[:-1]]
+
+def _fast_read(serial_device, port, length, delay):
+    command = "FAST_READ,{},{},{}\r".format(port, length, delay)
+    serial_device.write(command.encode())
+    reads = [serial_device.readline()]
+    while reads[-1] != "FAST_READ_FINISHED":
+        reads.append(serial_device.readline().decode().replace("\r\n",""))
+    return [float(i) for i in reads[:-1]]
+
+
+
 
 operators = ["NOP", 
              "SET", 
